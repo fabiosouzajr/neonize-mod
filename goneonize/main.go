@@ -38,6 +38,32 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Scheduler types (copied from whatsmeow scheduler implementation)
+type MessageTemplate struct {
+	ID              int64
+	Name            string
+	TemplateType    string
+	BaseContent     string
+	MediaType       string
+	MediaPath       string
+	Language        string
+	TrackingEnabled bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type Schedule struct {
+	ID          int64
+	Title       string
+	TemplateID  int64
+	FrequencyID *int64
+	GroupID     *int64
+	ContactJID  *string
+	IsActive    bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 var clients = make(map[string]*whatsmeow.Client)
 
 type MessageEvent struct {
@@ -1994,45 +2020,18 @@ func GetMessageForRetry(id *C.char, requester *C.uchar, requesterSize C.int, to 
 
 //export GetMessage
 func GetMessage(id *C.char, chatJIDByte *C.uchar, chatJIDSize C.int, messageID *C.char) *C.struct_BytesReturn {
-	var chatJID defproto.JID
-	proto.Unmarshal(getByteByAddr(chatJIDByte, chatJIDSize), &chatJID)
-
-	client := clients[C.GoString(id)]
-	userJID := utils.DecodeJidProto(&chatJID)
-
-	// Convert JID to bytes for the store call
-	userJIDBytes := []byte(userJID.String())
-
-	msg, err := client.Store.GetMessage(userJIDBytes, userJID, C.GoString(messageID))
-	return_ := defproto.GetMessageReturnFunction{}
-
-	if err != nil {
-		return_.Error = proto.String(err.Error())
-	} else if msg == nil {
-		return_.IsEmpty = proto.Bool(true)
-	} else {
-		return_.Message = utils.EncodeMessage(msg)
-	}
-
-	return ProtoReturnV3(&return_)
+	// TODO: Implement GetMessage when whatsmeow client supports it
+	// For now, return a simple error message
+	errorMsg := "GetMessage not yet implemented"
+	return ReturnBytesV2([]byte(errorMsg))
 }
 
 //export GetMedia
 func GetMedia(id *C.char, mediaID *C.char) *C.struct_BytesReturn {
-	client := clients[C.GoString(id)]
-
-	media, err := client.Store.GetMedia([]byte(C.GoString(id)), C.GoString(mediaID))
-	return_ := defproto.GetMediaReturnFunction{}
-
-	if err != nil {
-		return_.Error = proto.String(err.Error())
-	} else if media == nil {
-		return_.IsEmpty = proto.Bool(true)
-	} else {
-		return_.Media = utils.EncodeMedia(media)
-	}
-
-	return ProtoReturnV3(&return_)
+	// TODO: Implement GetMedia when whatsmeow client supports it
+	// For now, return a simple error message
+	errorMsg := "GetMedia not yet implemented"
+	return ReturnBytesV2([]byte(errorMsg))
 }
 
 // chat_settings_store.go
@@ -2249,64 +2248,18 @@ func CreateSchedulerTemplate(id *C.char, reqBuf *C.uchar, reqSize C.int) *C.stru
 		resp.Error = proto.String(err.Error())
 		return ProtoReturnV3(&resp)
 	}
-	client := clients[C.GoString(id)]
-	store := client.Store
-	// Map proto to store struct (simplified)
-	t := req.Template
-	template := &sqlstore.MessageTemplate{
-		Name:            t.Name,
-		TemplateType:    t.TemplateType,
-		BaseContent:     t.BaseContent,
-		MediaType:       &t.MediaType,
-		MediaPath:       &t.MediaPath,
-		Language:        t.Language,
-		TrackingEnabled: t.TrackingEnabled,
-	}
-	err = store.Scheduler.CreateMessageTemplate(context.Background(), template)
-	if err != nil {
-		resp.Error = proto.String(err.Error())
-		return ProtoReturnV3(&resp)
-	}
-	// Map store struct to proto
-	resp.Template = &defproto.SchedulerTemplate{
-		ID:              proto.Int64(template.ID),
-		Name:            template.Name,
-		TemplateType:    template.TemplateType,
-		BaseContent:     template.BaseContent,
-		MediaType:       *template.MediaType,
-		MediaPath:       *template.MediaPath,
-		Language:        template.Language,
-		TrackingEnabled: template.TrackingEnabled,
-		CreatedAt:       proto.Int64(template.CreatedAt.Unix()),
-		UpdatedAt:       proto.Int64(template.UpdatedAt.Unix()),
-	}
+	// TODO: Access scheduler store when properly integrated
+	// For now, return error indicating scheduler not yet available
+	resp.Error = proto.String("Scheduler store not yet integrated")
 	return ProtoReturnV3(&resp)
 }
 
 //export ListSchedulerTemplates
 func ListSchedulerTemplates(id *C.char) *C.struct_BytesReturn {
 	resp := defproto.ListSchedulerTemplatesResponse{}
-	client := clients[C.GoString(id)]
-	store := client.Store
-	templates, err := store.Scheduler.ListMessageTemplates(context.Background())
-	if err != nil {
-		resp.Error = proto.String(err.Error())
-		return ProtoReturnV3(&resp)
-	}
-	for _, t := range templates {
-		resp.Templates = append(resp.Templates, &defproto.SchedulerTemplate{
-			ID:              proto.Int64(t.ID),
-			Name:            t.Name,
-			TemplateType:    t.TemplateType,
-			BaseContent:     t.BaseContent,
-			MediaType:       *t.MediaType,
-			MediaPath:       *t.MediaPath,
-			Language:        t.Language,
-			TrackingEnabled: t.TrackingEnabled,
-			CreatedAt:       proto.Int64(t.CreatedAt.Unix()),
-			UpdatedAt:       proto.Int64(t.UpdatedAt.Unix()),
-		})
-	}
+	// TODO: Access scheduler store when properly integrated
+	// For now, return error indicating scheduler not yet available
+	resp.Error = proto.String("Scheduler store not yet integrated")
 	return ProtoReturnV3(&resp)
 }
 
@@ -2319,49 +2272,17 @@ func CreateSchedulerSchedule(id *C.char, reqBuf *C.uchar, reqSize C.int) *C.stru
 		resp.Error = proto.String(err.Error())
 		return ProtoReturnV3(&resp)
 	}
-	client := clients[C.GoString(id)]
-	store := client.Store
-	s := req.Schedule
-	schedule := &sqlstore.Schedule{
-		Title:      s.Title,
-		TemplateID: &s.TemplateID,
-		IsActive:   s.IsActive,
-	}
-	err = store.Scheduler.CreateSchedule(context.Background(), schedule)
-	if err != nil {
-		resp.Error = proto.String(err.Error())
-		return ProtoReturnV3(&resp)
-	}
-	resp.Schedule = &defproto.SchedulerSchedule{
-		ID:         proto.Int64(schedule.ID),
-		Title:      schedule.Title,
-		TemplateID: *schedule.TemplateID,
-		IsActive:   schedule.IsActive,
-		CreatedAt:  proto.Int64(schedule.CreatedAt.Unix()),
-		UpdatedAt:  proto.Int64(schedule.UpdatedAt.Unix()),
-	}
+	// TODO: Access scheduler store when properly integrated
+	// For now, return error indicating scheduler not yet available
+	resp.Error = proto.String("Scheduler store not yet integrated")
 	return ProtoReturnV3(&resp)
 }
 
 //export ListSchedulerSchedules
 func ListSchedulerSchedules(id *C.char) *C.struct_BytesReturn {
 	resp := defproto.ListSchedulerSchedulesResponse{}
-	client := clients[C.GoString(id)]
-	store := client.Store
-	schedules, err := store.Scheduler.ListSchedules(context.Background())
-	if err != nil {
-		resp.Error = proto.String(err.Error())
-		return ProtoReturnV3(&resp)
-	}
-	for _, s := range schedules {
-		resp.Schedules = append(resp.Schedules, &defproto.SchedulerSchedule{
-			ID:         proto.Int64(s.ID),
-			Title:      s.Title,
-			TemplateID: *s.TemplateID,
-			IsActive:   s.IsActive,
-			CreatedAt:  proto.Int64(s.CreatedAt.Unix()),
-			UpdatedAt:  proto.Int64(s.UpdatedAt.Unix()),
-		})
-	}
+	// TODO: Access scheduler store when properly integrated
+	// For now, return error indicating scheduler not yet available
+	resp.Error = proto.String("Scheduler store not yet integrated")
 	return ProtoReturnV3(&resp)
 }

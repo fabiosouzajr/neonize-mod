@@ -7,7 +7,6 @@ import (
 	defproto "github.com/krypton-byte/neonize/defproto"
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
-	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
@@ -932,6 +931,8 @@ func EncodeMessage(msg *waE2E.Message) *waE2E.Message {
 }
 
 // EncodeMedia encodes media information to protobuf format
+// TODO: Implement when Media types are available
+/*
 func EncodeMedia(media *sqlstore.Media) *defproto.Media {
 	if media == nil {
 		return nil
@@ -947,3 +948,4 @@ func EncodeMedia(media *sqlstore.Media) *defproto.Media {
 		Thumbnail: nil,                      // Media struct doesn't have thumbnail
 	}
 }
+*/
