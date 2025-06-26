@@ -126,7 +126,10 @@ from .proto.Neonize_pb2 import (
     ReturnFunctionWithError,
     LocalChatSettings,
     BuildMessageReturnFunction,
-    UpdateGroupRequestParticipantsReturnFunction
+    UpdateGroupRequestParticipantsReturnFunction,
+    GetMessageReturnFunction,
+    GetMediaReturnFunction,
+    Media
 )
 from .proto.waCompanionReg.WAWebProtobufsCompanionReg_pb2 import DeviceProps
 from .proto.waE2E.WAWebProtobufsE2E_pb2 import (
@@ -2641,6 +2644,55 @@ class NewClient:
         if not model.isEmpty:
             return model.Message
 
+    def get_message(self, chat_jid: JID, message_id: str) -> typing.Union[None, Message]:
+        """
+        Retrieves a message from the store by chat JID and message ID.
+
+        :param chat_jid: The JID of the chat where the message was sent.
+        :type chat_jid: JID
+        :param message_id: The unique identifier of the message.
+        :type message_id: str
+        :return: The message if found, None otherwise.
+        :rtype: Union[None, Message]
+        """
+        chat_jid_buf = chat_jid.SerializeToString()
+        bytes_ptr = self.__client.GetMessage(
+            self.uuid,
+            chat_jid_buf,
+            len(chat_jid_buf),
+            message_id.encode(),
+        )
+        protobytes = bytes_ptr.contents.get_bytes()
+        free_bytes(bytes_ptr)
+        model = GetMessageReturnFunction.FromString(protobytes)
+        if model.Error:
+            raise Exception(model.Error)
+        if not model.IsEmpty:
+            return model.Message
+        return None
+
+    def get_media(self, media_id: str) -> typing.Union[None, neonize_proto.Media]:
+        """
+        Retrieves media from the store by media ID.
+
+        :param media_id: The unique identifier of the media.
+        :type media_id: str
+        :return: The media if found, None otherwise.
+        :rtype: Union[None, neonize_proto.Media]
+        """
+        bytes_ptr = self.__client.GetMedia(
+            self.uuid,
+            media_id.encode(),
+        )
+        protobytes = bytes_ptr.contents.get_bytes()
+        free_bytes(bytes_ptr)
+        model = GetMediaReturnFunction.FromString(protobytes)
+        if model.Error:
+            raise Exception(model.Error)
+        if not model.IsEmpty:
+            return model.Media
+        return None
+
     def send_fb_message(
         self,
         to: JID,
@@ -2726,6 +2778,76 @@ class NewClient:
         Disconnect the client
         """
         self.__client.Disconnect(self.uuid)
+
+    def create_scheduler_template(self, template) -> SchedulerTemplate:
+        """
+        Create a scheduler template.
+        :param template: SchedulerTemplate protobuf message
+        :return: SchedulerTemplate protobuf message
+        """
+        from .proto.Neonize_pb2 import CreateSchedulerTemplateRequest, CreateSchedulerTemplateResponse
+        req = CreateSchedulerTemplateRequest(Template=template)
+        req_bytes = req.SerializeToString()
+        bytes_ptr = self.__client.CreateSchedulerTemplate(
+            self.uuid,
+            req_bytes,
+            len(req_bytes),
+        )
+        protobytes = bytes_ptr.contents.get_bytes()
+        free_bytes(bytes_ptr)
+        resp = CreateSchedulerTemplateResponse.FromString(protobytes)
+        if resp.Error:
+            raise Exception(resp.Error)
+        return resp.Template
+
+    def list_scheduler_templates(self):
+        """
+        List all scheduler templates.
+        :return: List of SchedulerTemplate protobuf messages
+        """
+        from .proto.Neonize_pb2 import ListSchedulerTemplatesResponse
+        bytes_ptr = self.__client.ListSchedulerTemplates(self.uuid)
+        protobytes = bytes_ptr.contents.get_bytes()
+        free_bytes(bytes_ptr)
+        resp = ListSchedulerTemplatesResponse.FromString(protobytes)
+        if resp.Error:
+            raise Exception(resp.Error)
+        return resp.Templates
+
+    def create_scheduler_schedule(self, schedule) -> SchedulerSchedule:
+        """
+        Create a scheduler schedule.
+        :param schedule: SchedulerSchedule protobuf message
+        :return: SchedulerSchedule protobuf message
+        """
+        from .proto.Neonize_pb2 import CreateSchedulerScheduleRequest, CreateSchedulerScheduleResponse
+        req = CreateSchedulerScheduleRequest(Schedule=schedule)
+        req_bytes = req.SerializeToString()
+        bytes_ptr = self.__client.CreateSchedulerSchedule(
+            self.uuid,
+            req_bytes,
+            len(req_bytes),
+        )
+        protobytes = bytes_ptr.contents.get_bytes()
+        free_bytes(bytes_ptr)
+        resp = CreateSchedulerScheduleResponse.FromString(protobytes)
+        if resp.Error:
+            raise Exception(resp.Error)
+        return resp.Schedule
+
+    def list_scheduler_schedules(self):
+        """
+        List all scheduler schedules.
+        :return: List of SchedulerSchedule protobuf messages
+        """
+        from .proto.Neonize_pb2 import ListSchedulerSchedulesResponse
+        bytes_ptr = self.__client.ListSchedulerSchedules(self.uuid)
+        protobytes = bytes_ptr.contents.get_bytes()
+        free_bytes(bytes_ptr)
+        resp = ListSchedulerSchedulesResponse.FromString(protobytes)
+        if resp.Error:
+            raise Exception(resp.Error)
+        return resp.Schedules
 
 
 class ClientFactory:

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-for fp in (Path(__file__).parent.parent / "proto").iterdir():
+for fp in (Path(__file__).parent.parent / "neonize" / "proto").iterdir():
     if fp.is_file() and not (fp.name.startswith("__init__") and "sys.path" in fp.read_text()):
         text = fp.read_text()
         fp.write_text(

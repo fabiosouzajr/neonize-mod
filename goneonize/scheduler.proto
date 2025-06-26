@@ -1,0 +1,53 @@
+syntax = "proto2";
+option go_package = "./defproto";
+package neonize;
+
+// Scheduler API
+message SchedulerTemplate {
+    required int64 ID = 1;
+    required string Name = 2;
+    required string TemplateType = 3;
+    required string BaseContent = 4;
+    optional string MediaType = 5;
+    optional string MediaPath = 6;
+    required string Language = 7;
+    required bool TrackingEnabled = 8;
+    required int64 CreatedAt = 9;
+    required int64 UpdatedAt = 10;
+}
+
+message SchedulerSchedule {
+    required int64 ID = 1;
+    required string Title = 2;
+    required int64 TemplateID = 3;
+    optional int64 FrequencyID = 4;
+    optional int64 GroupID = 5;
+    optional string ContactJID = 6;
+    required bool IsActive = 7;
+    required int64 CreatedAt = 8;
+    required int64 UpdatedAt = 9;
+}
+
+message CreateSchedulerTemplateRequest {
+    required SchedulerTemplate Template = 1;
+}
+message CreateSchedulerTemplateResponse {
+    optional string Error = 1;
+    optional SchedulerTemplate Template = 2;
+}
+message ListSchedulerTemplatesResponse {
+    optional string Error = 1;
+    repeated SchedulerTemplate Templates = 2;
+}
+
+message CreateSchedulerScheduleRequest {
+    required SchedulerSchedule Schedule = 1;
+}
+message CreateSchedulerScheduleResponse {
+    optional string Error = 1;
+    optional SchedulerSchedule Schedule = 2;
+}
+message ListSchedulerSchedulesResponse {
+    optional string Error = 1;
+    repeated SchedulerSchedule Schedules = 2;
+} 

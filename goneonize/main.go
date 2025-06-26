@@ -1978,24 +1978,60 @@ func GetContactQRLink(id *C.char, revoke C.bool) *C.struct_BytesReturn {
 
 //export GetMessageForRetry
 func GetMessageForRetry(id *C.char, requester *C.uchar, requesterSize C.int, to *C.uchar, toSize C.int, messageID *C.char) *C.struct_BytesReturn {
-	var RequesterJID, toJID defproto.JID
+	var RequesterJID defproto.JID
+	var toJID defproto.JID
+	proto.Unmarshal(getByteByAddr(requester, requesterSize), &RequesterJID)
+	proto.Unmarshal(getByteByAddr(to, toSize), &toJID)
 	return_ := defproto.GetMessageForRetryReturnFunction{}
-	err_req := proto.Unmarshal(getByteByAddr(requester, requesterSize), &RequesterJID)
-	if err_req != nil {
-		return_.Error = proto.String(err_req.Error())
-		return ProtoReturnV3(&return_)
-	}
-	err_to := proto.Unmarshal(getByteByAddr(to, toSize), &toJID)
-	if err_to != nil {
-		return_.Error = proto.String(err_to.Error())
-		return ProtoReturnV3(&return_)
-	}
 	msg := clients[C.GoString(id)].GetMessageForRetry(utils.DecodeJidProto(&RequesterJID), utils.DecodeJidProto(&toJID), C.GoString(messageID))
 	if msg == nil {
 		return_.IsEmpty = proto.Bool(true)
 	} else {
 		return_.Message = msg
 	}
+	return ProtoReturnV3(&return_)
+}
+
+//export GetMessage
+func GetMessage(id *C.char, chatJIDByte *C.uchar, chatJIDSize C.int, messageID *C.char) *C.struct_BytesReturn {
+	var chatJID defproto.JID
+	proto.Unmarshal(getByteByAddr(chatJIDByte, chatJIDSize), &chatJID)
+
+	client := clients[C.GoString(id)]
+	userJID := utils.DecodeJidProto(&chatJID)
+
+	// Convert JID to bytes for the store call
+	userJIDBytes := []byte(userJID.String())
+
+	msg, err := client.Store.GetMessage(userJIDBytes, userJID, C.GoString(messageID))
+	return_ := defproto.GetMessageReturnFunction{}
+
+	if err != nil {
+		return_.Error = proto.String(err.Error())
+	} else if msg == nil {
+		return_.IsEmpty = proto.Bool(true)
+	} else {
+		return_.Message = utils.EncodeMessage(msg)
+	}
+
+	return ProtoReturnV3(&return_)
+}
+
+//export GetMedia
+func GetMedia(id *C.char, mediaID *C.char) *C.struct_BytesReturn {
+	client := clients[C.GoString(id)]
+
+	media, err := client.Store.GetMedia([]byte(C.GoString(id)), C.GoString(mediaID))
+	return_ := defproto.GetMediaReturnFunction{}
+
+	if err != nil {
+		return_.Error = proto.String(err.Error())
+	} else if media == nil {
+		return_.IsEmpty = proto.Bool(true)
+	} else {
+		return_.Media = utils.EncodeMedia(media)
+	}
+
 	return ProtoReturnV3(&return_)
 }
 
@@ -2202,4 +2238,130 @@ func CallbackFunction(ctx context.Context, callback C.ptr_to_python_function_byt
 func FreeBytesStruct(bytesReturn *C.struct_BytesReturn) {
 	C.free(unsafe.Pointer(bytesReturn.data))
 	C.free(unsafe.Pointer(bytesReturn))
+}
+
+//export CreateSchedulerTemplate
+func CreateSchedulerTemplate(id *C.char, reqBuf *C.uchar, reqSize C.int) *C.struct_BytesReturn {
+	var req defproto.CreateSchedulerTemplateRequest
+	err := proto.Unmarshal(getByteByAddr(reqBuf, reqSize), &req)
+	resp := defproto.CreateSchedulerTemplateResponse{}
+	if err != nil {
+		resp.Error = proto.String(err.Error())
+		return ProtoReturnV3(&resp)
+	}
+	client := clients[C.GoString(id)]
+	store := client.Store
+	// Map proto to store struct (simplified)
+	t := req.Template
+	template := &sqlstore.MessageTemplate{
+		Name:            t.Name,
+		TemplateType:    t.TemplateType,
+		BaseContent:     t.BaseContent,
+		MediaType:       &t.MediaType,
+		MediaPath:       &t.MediaPath,
+		Language:        t.Language,
+		TrackingEnabled: t.TrackingEnabled,
+	}
+	err = store.Scheduler.CreateMessageTemplate(context.Background(), template)
+	if err != nil {
+		resp.Error = proto.String(err.Error())
+		return ProtoReturnV3(&resp)
+	}
+	// Map store struct to proto
+	resp.Template = &defproto.SchedulerTemplate{
+		ID:              proto.Int64(template.ID),
+		Name:            template.Name,
+		TemplateType:    template.TemplateType,
+		BaseContent:     template.BaseContent,
+		MediaType:       *template.MediaType,
+		MediaPath:       *template.MediaPath,
+		Language:        template.Language,
+		TrackingEnabled: template.TrackingEnabled,
+		CreatedAt:       proto.Int64(template.CreatedAt.Unix()),
+		UpdatedAt:       proto.Int64(template.UpdatedAt.Unix()),
+	}
+	return ProtoReturnV3(&resp)
+}
+
+//export ListSchedulerTemplates
+func ListSchedulerTemplates(id *C.char) *C.struct_BytesReturn {
+	resp := defproto.ListSchedulerTemplatesResponse{}
+	client := clients[C.GoString(id)]
+	store := client.Store
+	templates, err := store.Scheduler.ListMessageTemplates(context.Background())
+	if err != nil {
+		resp.Error = proto.String(err.Error())
+		return ProtoReturnV3(&resp)
+	}
+	for _, t := range templates {
+		resp.Templates = append(resp.Templates, &defproto.SchedulerTemplate{
+			ID:              proto.Int64(t.ID),
+			Name:            t.Name,
+			TemplateType:    t.TemplateType,
+			BaseContent:     t.BaseContent,
+			MediaType:       *t.MediaType,
+			MediaPath:       *t.MediaPath,
+			Language:        t.Language,
+			TrackingEnabled: t.TrackingEnabled,
+			CreatedAt:       proto.Int64(t.CreatedAt.Unix()),
+			UpdatedAt:       proto.Int64(t.UpdatedAt.Unix()),
+		})
+	}
+	return ProtoReturnV3(&resp)
+}
+
+//export CreateSchedulerSchedule
+func CreateSchedulerSchedule(id *C.char, reqBuf *C.uchar, reqSize C.int) *C.struct_BytesReturn {
+	var req defproto.CreateSchedulerScheduleRequest
+	err := proto.Unmarshal(getByteByAddr(reqBuf, reqSize), &req)
+	resp := defproto.CreateSchedulerScheduleResponse{}
+	if err != nil {
+		resp.Error = proto.String(err.Error())
+		return ProtoReturnV3(&resp)
+	}
+	client := clients[C.GoString(id)]
+	store := client.Store
+	s := req.Schedule
+	schedule := &sqlstore.Schedule{
+		Title:      s.Title,
+		TemplateID: &s.TemplateID,
+		IsActive:   s.IsActive,
+	}
+	err = store.Scheduler.CreateSchedule(context.Background(), schedule)
+	if err != nil {
+		resp.Error = proto.String(err.Error())
+		return ProtoReturnV3(&resp)
+	}
+	resp.Schedule = &defproto.SchedulerSchedule{
+		ID:         proto.Int64(schedule.ID),
+		Title:      schedule.Title,
+		TemplateID: *schedule.TemplateID,
+		IsActive:   schedule.IsActive,
+		CreatedAt:  proto.Int64(schedule.CreatedAt.Unix()),
+		UpdatedAt:  proto.Int64(schedule.UpdatedAt.Unix()),
+	}
+	return ProtoReturnV3(&resp)
+}
+
+//export ListSchedulerSchedules
+func ListSchedulerSchedules(id *C.char) *C.struct_BytesReturn {
+	resp := defproto.ListSchedulerSchedulesResponse{}
+	client := clients[C.GoString(id)]
+	store := client.Store
+	schedules, err := store.Scheduler.ListSchedules(context.Background())
+	if err != nil {
+		resp.Error = proto.String(err.Error())
+		return ProtoReturnV3(&resp)
+	}
+	for _, s := range schedules {
+		resp.Schedules = append(resp.Schedules, &defproto.SchedulerSchedule{
+			ID:         proto.Int64(s.ID),
+			Title:      s.Title,
+			TemplateID: *s.TemplateID,
+			IsActive:   s.IsActive,
+			CreatedAt:  proto.Int64(s.CreatedAt.Unix()),
+			UpdatedAt:  proto.Int64(s.UpdatedAt.Unix()),
+		})
+	}
+	return ProtoReturnV3(&resp)
 }

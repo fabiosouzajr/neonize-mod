@@ -7,10 +7,12 @@ import (
 	defproto "github.com/krypton-byte/neonize/defproto"
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
+	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
 import (
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -212,14 +214,14 @@ func EncodeAddressingMode(mode_types types.AddressingMode) *defproto.AddressingM
 }
 func EncodeMessageSource(messageSource types.MessageSource) *defproto.MessageSource {
 	return &defproto.MessageSource{
-		Chat:               EncodeJidProto(messageSource.Chat),
-		Sender:             EncodeJidProto(messageSource.Sender),
-		IsFromMe:           &messageSource.IsFromMe,
-		IsGroup:            &messageSource.IsGroup,
+		Chat:     EncodeJidProto(messageSource.Chat),
+		Sender:   EncodeJidProto(messageSource.Sender),
+		IsFromMe: &messageSource.IsFromMe,
+		IsGroup:  &messageSource.IsGroup,
 
-		AddressingMode:     EncodeAddressingMode(messageSource.AddressingMode),
-		SenderAlt:          EncodeJidProto(messageSource.SenderAlt),
-		RecipientAlt:       EncodeJidProto(messageSource.RecipientAlt),
+		AddressingMode: EncodeAddressingMode(messageSource.AddressingMode),
+		SenderAlt:      EncodeJidProto(messageSource.SenderAlt),
+		RecipientAlt:   EncodeJidProto(messageSource.RecipientAlt),
 
 		BroadcastListOwner: EncodeJidProto(messageSource.BroadcastListOwner),
 	}
@@ -918,5 +920,30 @@ func EncodeUndecryptableMessageEvent(undecryptableMessage events.UndecryptableMe
 		Info:            EncodeMessageInfo(undecryptableMessage.Info),
 		IsUnavailable:   &undecryptableMessage.IsUnavailable,
 		DecryptFailMode: &failMode,
+	}
+}
+
+// EncodeMessage encodes a whatsmeow message to protobuf format
+func EncodeMessage(msg *waE2E.Message) *waE2E.Message {
+	if msg == nil {
+		return nil
+	}
+	return msg
+}
+
+// EncodeMedia encodes media information to protobuf format
+func EncodeMedia(media *sqlstore.Media) *defproto.Media {
+	if media == nil {
+		return nil
+	}
+
+	return &defproto.Media{
+		ID:        proto.String(media.ID),
+		Type:      proto.String(media.Type),
+		Data:      media.Content,
+		FileName:  proto.String(media.ID), // Use ID as filename since Media struct doesn't have filename
+		FileSize:  proto.Int64(int64(len(media.Content))),
+		MimeType:  proto.String(media.Type), // Use type as mime type
+		Thumbnail: nil,                      // Media struct doesn't have thumbnail
 	}
 }
