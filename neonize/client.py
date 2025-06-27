@@ -389,10 +389,12 @@ class NewClient:
     def __onLoginStatus(self, s: str):
         print(s)
 
-    def __onQr(self, qr_protoaddr: int):
+    def __onQr(self, uuid: int, qr_protoaddr: int):
         """
         This method triggers an event when a QR code is detected.
 
+        :param uuid: The UUID of the client instance.
+        :type uuid: int
         :param qr_protoaddr: The address of the QR code in memory.
         :type qr_protoaddr: int
         """
