@@ -4,7 +4,7 @@ import requests
 from pathlib import Path
 from tqdm import tqdm
 
-__GONEONIZE_VERSION__ = "0.4.0"
+__GONEONIZE_VERSION__ = "0.3.10.4"
 __GIT_RELEASE_URL__ = "https://github.com/fabiosouzajr/neonize-mod"
 
 
