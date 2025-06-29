@@ -89,14 +89,38 @@ def build_neonize():
     print(f"os: {os_name}, arch: {arch_name}")
     filename = generated_name(os_name, arch_name)
     print(filename)
-    subprocess.call(
+    
+    # Run the build command
+    result = subprocess.call(
         shlex.split(f"go build -buildmode=c-shared -ldflags=-s -o {filename} "),
         cwd=cwd,
         env=os.environ.update({"CGO_ENABLED": "1"}),
     )
-    if (Path(cwd).parent / f"neonize/{filename}").exists():
-        os.remove(os.path.dirname(cwd) + "/neonize/" + filename)
-    os.rename(f"{cwd}/{filename}", os.path.dirname(cwd) + "/neonize/" + filename)
+    
+    # Check if build was successful
+    if result != 0:
+        print(f"❌ Build failed for {os_name}-{arch_name}")
+        return False
+    
+    # Check if the file was actually created
+    source_file = os.path.join(cwd, filename)
+    if not os.path.exists(source_file):
+        print(f"❌ Expected file not created: {source_file}")
+        return False
+    
+    # Remove existing file if it exists
+    target_file = os.path.join(os.path.dirname(cwd), "neonize", filename)
+    if os.path.exists(target_file):
+        os.remove(target_file)
+    
+    # Move the file
+    try:
+        os.rename(source_file, target_file)
+        print(f"✅ Successfully built and moved: {filename}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to move file: {e}")
+        return False
 
 
 def build():

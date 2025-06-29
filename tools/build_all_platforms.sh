@@ -85,7 +85,8 @@ detect_compilers() {
     
     if check_compiler "x86_64-w64-mingw32-gcc" "MinGW-w64 (Windows AMD64)"; then
         available_compilers+=("windows:amd64:x86_64-w64-mingw32-gcc")
-        available_compilers+=("windows:arm64:x86_64-w64-mingw32-gcc")
+        # Note: Windows ARM64 requires special handling and may not work with standard MinGW
+        # available_compilers+=("windows:arm64:x86_64-w64-mingw32-gcc")
     else
         missing_compilers+=("x86_64-w64-mingw32-gcc")
     fi
@@ -127,14 +128,14 @@ get_version() {
     local git_version=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
     
     if [ ! -z "$git_version" ]; then
-        # Remove 'v' prefix if present
-        echo "${git_version#v}"
+        # Remove 'v' prefix if present and trim whitespace
+        echo "${git_version#v}" | xargs
     else
         # Try to get version from version file or default to timestamp
         if [ -f "VERSION" ]; then
-            cat VERSION
+            cat VERSION | xargs
         elif [ -f "version.txt" ]; then
-            cat version.txt
+            cat version.txt | xargs
         else
             # Default to timestamp-based version
             date +"%Y.%m.%d-%H%M%S"
@@ -185,7 +186,10 @@ build_platform() {
     fi
     
     # Build
-    python tools/goneonize.py goneonize
+    if ! python tools/goneonize.py goneonize; then
+        echo "❌ Build command failed for $os-$arch"
+        return 1
+    fi
     
     # Get the generated filename
     filename=$(python -c "
@@ -195,6 +199,13 @@ sys.path.insert(0, 'tools')
 from goneonize import generated_name
 print(generated_name('$os', '$arch'))
 ")
+    
+    # Check if the file was actually created
+    if [ ! -f "neonize/$filename" ]; then
+        echo "❌ Expected file not found: neonize/$filename"
+        echo "   Build may have failed silently or file was created elsewhere"
+        return 1
+    fi
     
     # Move to versioned releases directory
     if [ -f "neonize/$filename" ]; then
