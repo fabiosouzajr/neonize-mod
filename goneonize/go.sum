@@ -5,6 +5,10 @@ github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/fabiosouzajr/whatsmeow-mod v0.0.0-20250614130217-d5152ad30f01 h1:vYdOMVf/uPO08xLTBm9cheO838W4n1Ea9zc5YjDi9e0=
+github.com/fabiosouzajr/whatsmeow-mod v0.0.0-20250614130217-d5152ad30f01/go.mod h1:Qy3L3BNBcnxfrAQ09lmFMa0ItZfg8zl9DzxKrptzfU4=
+github.com/fabiosouzajr/whatsmeow-mod v0.0.0-20250626144204-9478d3a7c724 h1:Gmz86H5GkilCCZKAaVFXRncCQk7nKzbcyHnCvf3NGGg=
+github.com/fabiosouzajr/whatsmeow-mod v0.0.0-20250626144204-9478d3a7c724/go.mod h1:bEyyFvXlwr/18B2pOkdX1vWAx1+y1NJX+sCXVyw01UA=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=

@@ -33,7 +33,7 @@ def __download(url: str, fname: str, chunk_size=1024):
 
 def download():
     __download(
-        f"{__GIT_RELEASE_URL__}/releases/download/{__GONEONIZE_VERSION__}/{generated_name()}",
+        f"{__GIT_RELEASE_URL__}/releases/download/v{__GONEONIZE_VERSION__}/{generated_name()}",
         f"{os.path.dirname(__file__)}/{generated_name()}",
     )
 

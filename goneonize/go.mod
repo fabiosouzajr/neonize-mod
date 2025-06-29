@@ -26,4 +26,4 @@ require (
 	golang.org/x/text v0.26.0 // indirect
 )
 
-replace go.mau.fi/whatsmeow => ../../whatsmeow
+replace go.mau.fi/whatsmeow => github.com/fabiosouzajr/whatsmeow-mod v0.0.0-20250626144204-9478d3a7c724
